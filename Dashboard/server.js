@@ -1,7 +1,8 @@
 const express = require('express');
 const app = express();
 const MongoClient = require('mongodb').MongoClient
-
+var redis = require('redis')
+var client = redis.createClient(6379, '152.46.19.205', {})
 var db
 
 // MongoClient.connect('mongodb://localhost:27017/envoprov', (err, database) => {
@@ -24,10 +25,30 @@ MongoClient.connect('mongodb://152.46.19.205:27017/meetup', (err, database) => {
 app.get('/:msg', (req, res) => {
   db.collection('cityEvent').find({city:req.params.msg}).toArray(function(err, results) {
   	if (err) return console.log(err)
-    	// renders index.ejs
-    //console.log("city:"+"'"+req.params.msg+"'")
-    //console.log(db.collection('cityEvent').find({"city":'"'+req.params.msg+'"'}).toArray())
 	console.log(results)
     	res.render('index.ejs', {cityEvent: results})
   })
 })
+
+app.get('/redis/findcities/:msg', (req, res) => {
+    client.select(7);
+    client.llen(req.params.msg, function(err, len) {
+        client.lrange(req.params.msg, 0, 5, function(err, val) {
+            //res.write('Top Cities hosting this event: ' + val);
+            res.render('index.ejs', {cityEvent: val})
+	    res.end();
+        })
+    });
+})
+
+app.get('/redis/findevents/:msg', (req, res) => {
+    client.select(10);
+    client.llen(req.params.msg, function(err, len) {
+        client.lrange(req.params.msg, 0, 5, function(err, val) {
+            //res.write('Top Cities hosting this event: ' + val);
+            res.render('indexevents.ejs', {cityEvent_original: val})
+            res.end();
+        })
+    });
+})
+
