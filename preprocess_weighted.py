@@ -12,7 +12,7 @@ import RAKE
 
 client = MongoClient("mongodb://152.46.19.205:27017")
 db = client['meetup']
-collection = db['cityEvent_test']
+collection = db['cityEvent']
 
 r = redis.StrictRedis(host='152.46.19.205', port=6379, db=10)
 
@@ -52,7 +52,7 @@ def extractWords(event):
 		words = (re.split(r'\s{1,}', keyword[0]))
 		for word in words:
 			if word.isalnum() and len(word)>2:
-				temp_list.append(word)
+				temp_list.append(word.strip().lower())
 	return (city,temp_list)
 
 def createSortedList(event):
@@ -72,6 +72,11 @@ def addWeightGroupName(record):
 
 	return (record[0], new_dict)
 
+def format(record):
+	city = record[0].strip().lower()
+	city = ''.join(i for i in city if not i.isdigit())
+	return (city, record[1])
+
 
 conf = SparkConf()
 conf.setMaster('spark://152.46.16.246:7077')
@@ -85,13 +90,13 @@ sql_sc = SQLContext(sc)
 Rake = RAKE.Rake("/home/rahuja/RakeTest/SmartStoplist.txt")
 
 event_name_df = event_df.select(col("event_name").alias("data"), col("city"))
-event_rdd_event_name = event_name_df.rdd.map(lambda x: (x.city, Rake.run(x.data))).map(extractWords).mapValues(list).mapValues(flatten).mapValues(createDict).map(addWeightEventName)
+event_rdd_event_name = event_name_df.rdd.map(lambda x: (x.city, Rake.run(x.data))).map(extractWords).map(format).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict).map(addWeightEventName)
 
 event_group_df = event_df.select(col("group_name").alias("data"), col("city"))
-event_rdd_group_name = event_group_df.rdd.map(lambda x: (x.city, Rake.run(x.data))).map(extractWords).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict).map(addWeightGroupName)
+event_rdd_group_name = event_group_df.rdd.map(lambda x: (x.city, Rake.run(x.data))).map(extractWords).map(format).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict).map(addWeightGroupName)
 
 event_desc_df = event_df.select(col("description").alias("data"), col("city"))
-event_rdd_description = event_desc_df.rdd.map(lambda x: (x.city, Rake.run(x.data)[0:5])).map(extractWords).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict)
+event_rdd_description = event_desc_df.rdd.map(lambda x: (x.city, Rake.run(x.data)[0:5])).map(extractWords).map(format).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict)
 
 event_rdd = event_rdd_event_name.union(event_rdd_group_name).union(event_rdd_description)
 event_rdd_1 = event_rdd.groupByKey().mapValues(list).mapValues(flatten_dict).mapValues(createDict).mapValues(createSortedList)
@@ -102,6 +107,6 @@ for event in event_data:
 	event_object = {"city" : event[0], "events": event[1]}
 	collection.insert_one(event_object).inserted_id
 
-# for event in event_data:
-# 	for item in event[1]:
-# 		r.rpush(event[0], item)
+for event in event_data:
+	for item in event[1]:
+		r.rpush(event[0], item)
