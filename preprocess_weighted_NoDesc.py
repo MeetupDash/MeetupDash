@@ -95,10 +95,10 @@ event_rdd_event_name = event_name_df.rdd.map(lambda x: (x.city, Rake.run(x.data)
 event_group_df = event_df.select(col("group_name").alias("data"), col("city"))
 event_rdd_group_name = event_group_df.rdd.map(lambda x: (x.city, Rake.run(x.data))).map(extractWords).map(format).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict).map(addWeightGroupName)
 
-event_desc_df = event_df.select(col("description").alias("data"), col("city"))
-event_rdd_description = event_desc_df.rdd.map(lambda x: (x.city, Rake.run(x.data)[0:5])).map(extractWords).map(format).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict)
+# event_desc_df = event_df.select(col("description").alias("data"), col("city"))
+# event_rdd_description = event_desc_df.rdd.map(lambda x: (x.city, Rake.run(x.data)[0:5])).map(extractWords).map(format).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict)
 
-event_rdd = event_rdd_event_name.union(event_rdd_group_name).union(event_rdd_description)
+event_rdd = event_rdd_event_name.union(event_rdd_group_name)
 event_rdd_1 = event_rdd.groupByKey().mapValues(list).mapValues(flatten_dict).mapValues(createDict).mapValues(createSortedList)
 
 event_data = event_rdd_1.collect()
