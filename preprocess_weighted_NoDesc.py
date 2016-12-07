@@ -14,7 +14,7 @@ client = MongoClient("mongodb://152.46.19.205:27017")
 db = client['meetup']
 collection = db['cityEvent']
 
-r = redis.StrictRedis(host='152.46.19.205', port=6379, db=10)
+r = redis.StrictRedis(host='152.46.19.205', port=6379, db=11)
 
 def createDict(values):
 	temp_dict = {}
@@ -95,17 +95,17 @@ event_rdd_event_name = event_name_df.rdd.map(lambda x: (x.city, Rake.run(x.data)
 event_group_df = event_df.select(col("group_name").alias("data"), col("city"))
 event_rdd_group_name = event_group_df.rdd.map(lambda x: (x.city, Rake.run(x.data))).map(extractWords).map(format).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict).map(addWeightGroupName)
 
-event_desc_df = event_df.select(col("description").alias("data"), col("city"))
-event_rdd_description = event_desc_df.rdd.map(lambda x: (x.city, Rake.run(x.data)[0:5])).map(extractWords).map(format).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict)
+# event_desc_df = event_df.select(col("description").alias("data"), col("city"))
+# event_rdd_description = event_desc_df.rdd.map(lambda x: (x.city, Rake.run(x.data)[0:5])).map(extractWords).map(format).groupByKey().mapValues(list).mapValues(flatten).mapValues(createDict)
 
-event_rdd = event_rdd_event_name.union(event_rdd_group_name).union(event_rdd_description)
+event_rdd = event_rdd_event_name.union(event_rdd_group_name)
 event_rdd_1 = event_rdd.groupByKey().mapValues(list).mapValues(flatten_dict).mapValues(createDict).mapValues(createSortedList)
 
 event_data = event_rdd_1.collect()
 
-for event in event_data:
-	event_object = {"city" : event[0], "events": event[1]}
-	collection.insert_one(event_object).inserted_id
+# for event in event_data:
+# 	event_object = {"city" : event[0], "events": event[1]}
+# 	collection.insert_one(event_object).inserted_id
 
 for event in event_data:
 	for item in event[1]:
