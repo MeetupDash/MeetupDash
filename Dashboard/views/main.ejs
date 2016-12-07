@@ -14,15 +14,19 @@
   <title>MY APP</title>
 </head>
 <body>
-  Here are your results!
-
-  <table align="center" border="1">
-  <% for(var i=0; i<cityEvent_original.length; i++) {%>
-    <tr>
-      <td><%= cityEvent_original[i] %></td>
-    </tr>
-  <% } %>
-  </table>
-
+<table align="center" border="1"> 
+  <tr><td><form action="/findevents" align="right" method="post">
+	<label>Enter City:</label>
+	<input type="text" id="city" name="city">
+	<input type="submit" value="SUBMIT">
+  </form>
+  </td></tr>
+  <tr><td>
+  <form action="/findcities" align="right" method="post">
+	<label>Enter Event:</label>
+        <input type="text" id="events" name="events">
+        <input type="submit" value="SUBMIT">
+  </form></td></tr>
+</table>
 </body>
 </html>
